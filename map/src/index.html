@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FridaysForFuture Event Map</title>
+  <link rel="stylesheet" href="//unpkg.com/leaflet@1.7.1/dist/leaflet.css"
+  integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A=="
+  crossorigin=""/>
+  <link rel="stylesheet" href="//unpkg.com/leaflet-gesture-handling@1.2.1/dist/leaflet-gesture-handling.css"
+  integrity="sha384-JQaqyMC8J0ygnGFuDB9Vjn9x7TwupGxHjwm2wZt4f06IDWA1lLFj6yejevbbJb7X"
+  crossorigin=""/>
+  <script src="//unpkg.com/leaflet@1.7.1/dist/leaflet.js"
+  integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA=="
+  crossorigin=""></script>
+  <script src="//unpkg.com/leaflet-gesture-handling@1.2.1/dist/leaflet-gesture-handling.js"
+  integrity="sha384-e0KW0OINXo2td0u4aZsGTUlx9iC07ibT2d/7OAj4mcfdD9iCAVuMpf0kERwTqsGr"
+  crossorigin=""></script>
+  <script src="//unpkg.com/rbush@3.0.1/rbush.js"
+  integrity="sha384-mRy6ystm0kh9gQ4LBlwNo0ui0eirxHOPS12fSc3lenvRZ6UufryZM7wSvBdVOEA0"
+  crossorigin=""></script>
+  <script src="//unpkg.com/leaflet-markers-canvas@0.2.1/dist/leaflet-markers-canvas.js"
+  integrity="sha384-d43v28tmqjGJidf5sWuzVeHfuyFQR695IdD0dWidb122/zvDUcakeFHYzlFG6EOH"
+  crossorigin=""></script>
+  <style>
+    .centered-content {
+      text-align: center;
+    }
+
+    .leaflet-popup-content-wrapper {
+      box-shadow: 0;
+      border: solid #1B7340;
+    }
+
+    .leaflet-popup-content {
+      width: 350px;
+    }
+
+    .leaflet-popup-content h1 {
+      text-align: center;
+    }
+
+    .leaflet-popup-content h2 {
+      text-align: center;
+    }
+
+    .leaflet-popup-content a {
+      text-decoration: none;
+    }
+
+    .leaflet-popup-content a.social {
+      width: unset;
+      box-sizing: border-box;
+      text-decoration: none;
+      background: #1DA64A;
+      color: white!important;
+      padding: 10px;
+      text-transform: inherit;
+      text-align: center;
+      border: none;
+      border-radius: 4px;
+      letter-spacing: normal;
+      font-size: 15px;
+      font-weight: 700;
+      line-height: 1em;
+      display: inline-block;
+      margin-top: 5px;
+      -webkit-transition: all .2s;
+      -o-transition: all .2s;
+      transition: all .2s;
+      box-shadow: 6px 6px 0 0 #1b7340;
+      -webkit-box-shadow: 6px 6px 0 0 #1b7340;
+      margin: 0 10px;
+    }
+
+    .available-soon {
+      font-size: 17px;
+      font-weight: 200;
+      text-align: center;
+    }
+
+    .mapButton {
+      background: #1DA64A;
+      color: white !important;
+      padding: 10px;
+      text-transform: inherit;
+      border: none;
+      font-family: "Jost-Semi", "Sans";
+      letter-spacing: normal;
+      font-size: 10px;
+      font-weight: 700;
+      line-height: 1em;
+      display: inline-block;
+      margin-top: 5px;
+      box-shadow: 6px 6px 0px 0px #1b7340;
+      border-radius: 0;
+    }
+
+    .mapButton:hover {
+      background: #90D3ED;
+      color: white !important;
+      padding: 10px;
+      text-transform: inherit;
+      border: none;
+      font-family: "Jost-Semi", "Sans";
+      letter-spacing: normal;
+      font-size: 10px;
+      font-weight: 700;
+      line-height: 1em;
+      display: inline-block;
+      margin-top: 5px;
+      box-shadow: 6px 6px 0px 0px #1b7340;
+      border-radius: 0;
+    }
+
+    .actionContentImage {
+      max-width: 100%;
+      height: auto;
+    }
+
+    a.social img {
+      width: 30px; height: 30px; margin-bottom: -5px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="mapContainer">
+    <div id="mapid" class="" style="height: 800px;">&nbsp;</div>
+    <div id="registerNewAction">
+      <iframe style="height: 500px; width: 100%; border: none;" src="http://localhost:8000/register"></iframe>
+    </div>
+  </div>
+
+  <script src="./main.js"></script>
+</body>
+
+</html>

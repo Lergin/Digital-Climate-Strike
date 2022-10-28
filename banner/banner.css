@@ -1,0 +1,69 @@
+* {
+  margin: 0;
+  padding: 0;
+}
+
+a {
+  position: fixed;
+  height: 0;
+}
+
+img {
+  width: 100%;
+}
+
+video {
+  width: 100%;
+}
+
+.close {
+  position: fixed;
+  top: 0;
+  right: 0;
+  z-index: 1000;
+  width: 40px;
+  height: 40px;
+  cursor: pointer;
+}
+
+button {
+  width: 100%;
+  border: none;
+  background-image: none;
+  background-color: transparent;
+  -webkit-box-shadow: none;
+  -moz-box-shadow: none;
+  box-shadow: none;
+  color: white;
+  vertical-align: middle;
+  cursor: pointer;
+}
+
+button:before {
+  -webkit-transform: rotate(45deg);
+  transform: rotate(45deg);
+}
+button:after {
+  -webkit-transform: rotate(-45deg);
+  transform: rotate(-45deg);
+}
+
+button:after,
+button:before {
+  background-color: rgba(255, 255, 255);
+  content: "";
+  height: 1.2rem;
+  position: absolute;
+  width: 2px;
+}
+
+div.multilayer {
+  width: 100%;
+  height: 100vh;
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: center;
+}

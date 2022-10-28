@@ -1,0 +1,144 @@
+image: node:latest
+
+services:
+  - docker:stable
+  - docker:dind
+
+variables:
+  NODE_OPTIONS: --max-old-space-size=1536
+  NPM_TOKEN: ""
+
+cache:
+  paths:
+  - node_modules/
+  - .npm-cache/
+
+stages:
+  - install
+  - build
+  - deploy
+
+default:
+  before_script:
+    - mkdir -p $(pwd)/.npm-cache
+    - npm config set cache "$(pwd)/.npm-cache"
+    - git config --global user.name "${GITLAB_USER_NAME}"
+    - git config --global user.email "${GITLAB_USER_EMAIL}"
+
+
+install-banner:
+  stage: install
+  script:
+    - cd banner
+    - npm install
+
+install-images:
+  stage: install
+  script:
+    - cd image-tool
+    - npm install
+
+build-banner:
+  stage: build
+  script:
+    - cd banner
+    - npm install
+    - npm run build
+
+build-images-tool:
+  stage: build
+  script:
+    - cd image-tool
+    - npm install
+    - npm run build
+
+.before_deploy_script: &before_deploy_script
+  stage: deploy
+  before_script:
+    ##
+    ## Install ssh-agent if not already installed, it is required by Docker.
+    ## (change apt-get to yum if you use an RPM-based image)
+    ##
+    - 'which ssh-agent || ( apt-get update -y && apt-get install openssh-client git -y )'
+
+    ##
+    ## Run ssh-agent (inside the build environment)
+    ##
+    - eval $(ssh-agent -s)
+
+    ##
+    ## Add the SSH key stored in SSH_PRIVATE_KEY variable to the agent store
+    ## We're using tr to fix line endings which makes ed25519 keys work
+    ## without extra base64 encoding.
+    ## https://gitlab.com/gitlab-examples/ssh-private-key/issues/1#note_48526556
+    ##
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+
+    ##
+    ## Create the SSH directory and give it the right permissions
+    ##
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+
+    ##
+    ## Use ssh-keyscan to scan the keys of your private server. Replace gitlab.com
+    ## with your own domain name. You can copy and repeat that command if you have
+    ## more than one server to connect to.
+    ##
+    - ssh-keyscan ${SSH_HOST} >> ~/.ssh/known_hosts
+    - chmod 644 ~/.ssh/known_hosts
+
+.deploy_template: &deploy_job
+  <<: *before_deploy_script
+  script:
+    - npm install
+    - npm run build
+    - rsync -rav ./dist/ ${SSH_USER}@${SSH_HOST}:${APP_DIR}/
+
+
+deploy-on-demo:
+  <<: *deploy_job
+  when: manual
+  variables:
+    APP_DIR: '/data/apps/banner/'
+    SSH_HOST: ${DEMO_SSH_HOST}
+    SSH_USER: ${DEMO_SSH_USER}
+    SSH_PRIVATE_KEY: ${DEMO_SSH_KEY}
+    RUNTIME: demo
+    SSH_PORT: ${DEMO_SSH_PORT}
+  environment:
+    name: runtime/${RUNTIME}
+    url: https://klimawahl.world/demo_footer.html
+deploy-on-prod:
+  <<: *deploy_job
+  when: manual
+  variables:
+    APP_DIR: '/data/apps/banner/'
+    SSH_HOST: ${PROD_SSH_HOST}
+    SSH_USER: ${PROD_SSH_USER}
+    SSH_PRIVATE_KEY: ${PROD_SSH_KEY}
+    RUNTIME: prod
+    SSH_PORT: ${PROD_SSH_PORT}
+  environment:
+    name: runtime/${RUNTIME}
+    url: https://klimawahl.world/demo_footer.html
+
+
+deploy-image-tool-on-prod:
+  <<: *before_deploy_script
+  when: manual
+  variables:
+    APP_DIR: '/data/apps/images'
+    SSH_HOST: ${PROD_SSH_HOST}
+    SSH_USER: ${PROD_SSH_USER}
+    SSH_PRIVATE_KEY: ${PROD_SSH_KEY}
+    RUNTIME: prod
+    SSH_PORT: ${PROD_SSH_PORT}
+  environment:
+    name: runtime/${RUNTIME}
+    url: https://www.digitalstreik.FridaysForFuture.de
+  script:
+    - npm install
+    - npm run build
+    - rsync -rav ./image-tool/ --exclude node_modules --exclude dist ${SSH_USER}@${SSH_HOST}:${APP_DIR}
+    - ssh ${SSH_USER}@${SSH_HOST} "cd ${APP_DIR} && export $(xargs <.env)  && sudo docker-compose up -d --build --scale backend=5"

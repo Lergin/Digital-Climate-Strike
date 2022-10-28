@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Vertical Banner</title>
+    <link rel="stylesheet" type="text/css" href="../banner.css" />
+    <style>
+      .vertical-banner {
+        width: 100%;
+        /* The "aspect ratio padding hack" */
+        padding-top: 15.3472222%;
+        position: relative;
+        display: block;
+      }
+
+      .vertical-banner div {
+        width: 100%;
+        height:100%;
+        position: absolute;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        right: 0;
+      }
+
+      #overlay {
+        width: 100%;
+        z-index: 3; 
+      }
+
+      .updatable-image {
+        width: 20%;
+        z-index: 2;
+      }
+
+      #inital-image {
+        width: 100%;
+        z-index: 1; 
+      }
+    </style>
+  </head>
+  <body>
+
+    <a target="_blank" href="https://fridaysforfuture.de/allefuer1komma5">
+      <div alt="19.3. Globaler Klimastreik #AlleFür1Komma5">
+        <div class="multilayer" id="inital-image" style="background-image:url('./background.jpeg');"></div>
+        <div class="multilayer updatable-image" style="left: 0px;"></div>
+        <div class="multilayer updatable-image" style="left: 20%;"></div>
+        <div class="multilayer updatable-image" style="left: 40%;"></div>
+        <div class="multilayer updatable-image" style="left: 60%;"></div>
+        <div class="multilayer updatable-image" style="left: 80%;"></div>
+        <div class="multilayer" id="overlay" style="background-image:url('./overlay.png');"></div>
+      </div>
+    </a>
+
+    <div class="close" id="close-button" hidden>
+      <button title="Banner schließen"></button>
+    </div>
+
+    <script src="../banner.js"></script>
+  </body>
+</html>

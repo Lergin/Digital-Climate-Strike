@@ -1,0 +1,266 @@
+<!-- REPLACE SITE KEY!!! -->
+<!--<script src="https://www.google.com/recaptcha/api.js?render=reCAPTCHA_site_key"></script>-->
+<style>
+    @font-face {
+      font-family: "Jost-Book";
+      src: url("https://fridaysforfuture.de/fonts/Jost-400-Book.ttf") format("truetype");
+      font-weight:400;
+      font-style:normal;
+      font-display:swap;
+    }
+    
+    @font-face{
+      font-family:"Jost-Semi";
+      src: url("https://fridaysforfuture.de/fonts/Jost-600-Semi.ttf") format("truetype");
+      font-weight:400;
+      font-style:normal;
+      font-display:swap;
+    }
+
+    @font-face{
+      font-family:"Jost-Bold";
+      src:url("https://fridaysforfuture.de/fonts/Jost-700-Bold.ttf") format("truetype");
+      font-weight:400;
+      font-style:normal;
+      font-display:swap;
+    }
+
+    h2 {
+        font-family: "Jost-Semi";
+        color: #666;
+    }
+    div {
+        font-family: "Jost-Book";
+    }
+</style>
+
+<div id="streikbildform">
+    <div class="form-header">
+        <h2>Ich streike Online mit!</h2>
+    </div>
+    
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <div class="form-field">
+    <input type="text" class="input" id="name" name="name" placeholder="Name (erscheint auf der Karte)*" minlength="3" maxlength="50" required="true"
+           value="" autofocus/>
+    </div>
+    
+    <div class="form-field">
+    <input type="text" class="zip" id="zip" name="zip" minlength="5" maxlength="5" required="true"
+           value="" placeholder="Postleitzahl*" autofocus/>
+    </div>
+    
+    <div class="form-field">
+    <label for="file">Mein Streikbild (optional). <a target="_blank" href="https://fridaysforfuture.de/allefuer1komma5/dein-kreativer-onlinestreik/">Hier gibt's Inspiration!</a></label>
+    <br>
+    <input type="file" class="file" id="file" name="file" accept="image/*" autofocus/>
+    </div>
+    
+    <div class="form-field">
+    <input class="policy" id="allowOnBanner" name="allowOnBanner" type="checkbox" value=""/>
+    <label for="allowOnBanner">Ich möchte, dass mein Bild auch auf den Webseiten unserer Aktions-Partner angezeigt wird. (*)</label>
+    </div>
+    <div class="form-field">
+    <input class="policy" id="policy" name="policy" type="checkbox" value=""/>
+    <label for="policy">Ich habe die <a target="_blank" href="https://fridaysforfuture.de/datenschutz/">Datenschutzerklärung</a> gelesen und bin einverstanden, dass mein Foto (falls hochgeladen) für zukünftige FFF-Aktionen genutzt wird.</label>
+    </div>
+    <div id="error">
+    
+    </div>
+    <div class="form-actions">
+    <button id="submit-participation" class="btn" type="submit">Absenden</button>
+    </div>
+
+    <p>(*) Die besten Fotos werden in unserem Netzwerk von Partnern dargestellt. Wenn dir das gefällt, gib uns bitte dein Einverständnis über einen Haken in der Checkbox.</p>
+    </div>
+    <script type="application/javascript">
+    
+    let policy = '';
+    /** @type { HTMLInputElement } */
+    let allowOnBanner;
+    let file = '';
+    let zip = '';
+    let name ='';
+    let submitButton = {};
+    let errors = {};
+    let baseUrl = "http://localhost:8000"; // "https://www.digitalstreik.fridaysforfuture.de"
+    
+    function initFields() {
+        policy = document.querySelector('input#policy') || '';
+        allowOnBanner = document.querySelector('input#allowOnBanner') || '';
+        file = document.querySelector('input#file') || '';
+        zip = document.querySelector('input#zip') || '';
+        name = document.querySelector('input#name') || '';
+        submitButton = document.querySelector('button#submit-participation') || '';
+    }
+    
+    function initListeners() {
+        submitButton.addEventListener('click', (event) => {
+            uploadData();
+        });
+    }
+    
+    function showError(error) {
+        document.getElementById("error").innerText = error;
+    }
+
+    function getErrorMessage(error) {
+        switch(error.dataPath) {
+            case ".name":
+                return "Der Name muss mindestens 3 und maximal 50 Zeichen haben und keine Sonderzeichen beinhalten.";
+            case ".policy":
+                return "Du musst der Datenschutzerklärung zustimmen.";
+            case ".zip":
+                return "Invalide PLZ.";
+            default:
+                return error.message;
+        }
+    }
+    
+    function handleError(response) {
+        if (response.errors && response.errors.length > 0) {
+            showError(response.errors.map(error => getErrorMessage(error)).join('\n'));
+        } else {
+            showError(response.message)
+        }
+    }
+
+    
+    function showSuccess(result) {
+        var successHtml = "<div class='form-header'>";
+        successHtml += "<h2>Danke fürs Eintragen!</h2>";
+        successHtml += "<p>Bitte Euer Foto auf Social Media mit #AlleFür1Komma5 und #NoMoreEmpty Promises teilen!</p>";
+        successHtml += "<p>Dein individueller Karten-Link: <a target='_top' href='https://fridaysforfuture.de/allefuer1komma5?participationId=" + result.id + "'>https://fridaysforfuture.de/allefuer1komma5?participationId=" + result.id + "</a>";
+        successHtml += "<p>Verfolgt und macht bein den FFF Ortsgruppen mit!</p>";
+        successHtml += "<a href='https://fridaysforfuture.de/regionalgruppen/' target='_blank'>https://fridaysforfuture.de/regionalgruppen/</a>";
+        successHtml += "<p>Und hier alle ForFuture Gruppen: <a href='https://www.for-future-buendnis.de/' target='_blank'>https://www.for-future-buendnis.de/</a></p>";
+        successHtml += "</div>";
+
+        document.getElementById("streikbildform").innerHTML = successHtml;
+    }
+    
+    async  function uploadData() {
+    // REPLACE SITE KEY
+        /*grecaptcha.ready(function() {
+              grecaptcha.execute('reCAPTCHA_site_key', {action: 'submit'}).then(function(token) {*/
+        const formData = new FormData();
+        const rawFile = file.files[0];
+        formData.append("file", file.files[0]);
+        formData.append('name', name.value);
+        formData.append('allowOnBanner', allowOnBanner.checked);
+        formData.append('zip', zip.value);
+    //    formData.append('token', token);
+        formData.append('_csrf', "<%= csrfToken %>");
+        formData.append("policy", policy.checked);
+    
+    
+        fetch(baseUrl + "/rest/participations/", {
+                method: 'post',
+                body: formData
+            }).then((response) => {
+                    if (response.status === 201) {
+                        response.json().then((result) => {
+                            //showError(JSON.stringify(result))
+                            showSuccess(result);
+                        })
+                    } else if (response.status === 404) {
+                        showError("Leider ist unser Service gerade nicht verfügbar, bitte versuche es später nochmal.")
+                    } else {
+                        response.json().then((result) => {
+                            handleError(result)
+                        })
+                    }
+                })
+                .catch((err) => {
+                    showError(err)
+                })
+       /*       });
+            });*/
+    }
+    
+    
+    document.onreadystatechange = function () {
+        if (document.readyState == "complete") {
+           initFields();
+           initListeners();
+        }
+    }
+    </script>
+    <style>
+    /* The Modal (background) */
+    .modal {
+    /* display: none; Hidden by default */
+    position: fixed; /* Stay in place */
+    z-index: 1; /* Sit on top */
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto; /* Enable scroll if needed */
+    background-color: rgb(0,0,0); /* Fallback color */
+    background-color: rgba(0,0,0,0.8); /* Black w/ opacity */
+    }
+    
+    /* Modal Content/Box */
+    .modal-content {
+    border-radius: 12px;
+    background-color: #fefefecc;
+    margin: 15% auto; /* 15% from the top and centered */
+    padding: 20px;
+    border: 1px solid #888;
+    width: 80%; /* Could be more or less, depending on screen size */
+    font-family: "Jost-Book", sans;
+    font-size: 15px;
+    }
+    #partner-modal {
+        display: none;
+    }
+     /* The Close Button */
+    .close {
+    color: #1B7340;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    text-decoration: none;
+    }
+    
+    .close:hover,
+    .close:focus {
+    color: #90D3ED;
+    text-decoration: none;
+    cursor: pointer;
+    } 
+    input {
+    margin-top: 12px;
+    }
+    input:not([type="checkbox"]) {
+    border: 2px solid #1B7340;
+    margin: 8px 0;
+    padding: 12px 20px;
+    box-shadow: 6px 6px 0 0 #1b7340;
+    width: 90%;
+    }
+    input:not([type="submit"]):focus {
+    border: 2px solid #90D3ED;
+    outline: none;
+    }
+    #error {
+        margin-top: 10px;
+        color: red;
+    }
+    .btn {
+    cursor: pointer;
+    background-color: #1da64a;
+    color: white;
+    padding: 10px;
+    border: none;
+    font-size: 15px;
+    line-height: 1em;
+    font-weight: bold;
+    transition: all .2s;
+    box-shadow: 6px 6px 0 0 #1b7340;
+    margin-top: 20px;
+    width: 90%;
+    }
+    </style>
+    

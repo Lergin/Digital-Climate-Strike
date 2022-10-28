@@ -1,0 +1,94 @@
+version: '3.3'
+services:
+  reverse-proxy:
+    image: traefik:v2.0
+    command:
+      - --api.insecure=true
+      - --providers.docker
+      - --entryPoints.web.address=:80
+      - --entryPoints.websecure.address=:443
+      - --providers.file.directory=/etc/traefik/dynamic
+    ports:
+      - "8000:80"
+      - "4443:443"
+      # The Web UI (enabled by --api.insecure=true)
+      - "8080:8080"
+    depends_on:
+      - backend
+      - phpmyadmin
+    links:
+      - backend
+      - phpmyadmin
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./certs/certs-traefik.yaml:/etc/traefik/dynamic/certs-traefik.yaml
+      # Mount the directory containing the certs
+      - ./acme.json:/acme.json
+      - ./certs/:/etc/certs/
+  backend:
+    working_dir: /var/src/app
+    volumes:
+      - ./images/:/var/src/app/images
+    restart:  on-failure
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+      args:
+        - http_proxy
+        - https_proxy
+        - no_proxy
+        - node_env=development
+    image: fff-image-tool/server:latest
+    stdin_open: true
+    tty: true
+    environment:
+      DB_USERNAME: $DB_USERNAME
+      DB_HOST: $DB_HOST
+      DB_PASSWORD: $DB_PASSWORD
+      DB_DATABASE: $DB_DATABASE
+      DB_PORT: $DB_PORT
+      PORT: $PORT
+    depends_on:
+      - mysql
+    links:
+      - mysql
+    labels:
+      - "traefik.http.routers.backend-10.rule=Host(`www.digitalstreik.fridaysforfuture.de`)"
+      - "traefik.http.routers.backend-10.entryPoints=web,traefik"
+      - "traefik.http.services.backend.loadbalancer.server.port=8090"
+      - "traefik.http.routers.backend-10-ssl.rule=Host(`www.digitalstreik.fridaysforfuture.de`)"
+      - "traefik.http.routers.backend-10-ssl.entryPoints=websecure"
+      - "traefik.http.routers.backend-10-ssl.tls=true"
+      - "traefik.http.routers.backend-10-ssl.service=backend"
+
+  mysql:
+    image: mysql:5.7.10
+    ports:
+      - '3307:3306'
+    environment:
+      MYSQL_ROOT_PASSWORD: $DB_ROOT_PW
+      MYSQL_USER: $DB_USERNAME
+      MYSQL_PASSWORD: $DB_PASSWORD
+      MYSQL_DATABASE: $DB_DATABASE
+
+  phpmyadmin:
+    links:
+      - mysql
+    depends_on:
+      - mysql
+    image: phpmyadmin/phpmyadmin
+    restart: always
+    volumes:
+      - ./data:/var/lib/mysql
+    ports:
+      - "8081:80"
+    environment:
+      PMA_HOST: mysql
+    labels:
+      - "traefik.http.routers.backend-0.rule=PathPrefix(`/phpmyadmin`)"
+      - "traefik.http.routers.backend-0.entryPoints=web,traefik"
+      - "traefik.http.services.phpmyadmin.loadbalancer.server.port=80"
+      - "traefik.http.routers.backend-0-ssl.rule=PathPrefix(`/phpmyadmin`)"
+      - "traefik.http.routers.backend-0-ssl.entryPoints=websecure"
+      - "traefik.http.routers.backend-0-ssl.tls=true"
+      - "traefik.http.routers.backend-0-ssl.service=phpmyadmin"

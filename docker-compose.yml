@@ -1,0 +1,52 @@
+version: '3'
+
+services:
+  strike-widget:
+    build: .
+    volumes:
+      - .:/usr/src/app
+      - /usr/src/app/node_modules
+    ports:
+      - 8080:8080
+      - 9229:9229
+    command: npm run dev
+
+  mysql:
+    image: intland/mysql:5.7.24
+    environment:
+      - MYSQL_USER=participation
+      - MYSQL_PASSWORD=participation
+      - MYSQL_DATABASE=participation
+      - MYSQL_MAX_ALLOWED_PACKET=1024M
+      - MYSQL_INNODB_BUFFER_POOL_SIZE=1G
+      - MYSQL_INNODB_LOG_FILE_SIZE=256M
+      - MYSQL_INNODB_LOG_BUFFER_SIZE=256M
+    volumes:
+      - mysql-data:/var/lib/mysql/data
+    ports:
+      - '3307:3306'
+
+  backend:
+    build: ./image-tool
+    #image: node:latest
+    working_dir: /var/src/app
+    volumes:
+      - ./image-tool:/var/src/app
+    command: npm run start
+    ports:
+      - 8090:8090
+      - 8081:8081
+    links:
+      - mysql
+    depends_on:
+      - mysql
+    environment:
+      DB_USERNAME: participation
+      DB_HOST: mysql
+      DB_PASSWORD: participation
+      DB_DATABASE: participation
+      DB_PORT: 3306
+      PORT: 8090
+
+volumes:
+  mysql-data:

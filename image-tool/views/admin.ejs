@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Bilder Moderation 19.03.2021</title>
+    <link
+      href="https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdn.jsdelivr.net/npm/@mdi/font@4.x/css/materialdesignicons.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.min.css"
+      rel="stylesheet"
+    />
+
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, minimal-ui"
+    />
+    <style>
+      @font-face {
+        font-family: "Jost-Book";
+        src: url("https://fridaysforfuture.de/fonts/Jost-400-Book.ttf") format("truetype");
+        font-weight:400;
+        font-style:normal;
+        font-display:swap;
+      }
+
+      @font-face{
+        font-family:"Jost-Semi";
+        src: url("https://fridaysforfuture.de/fonts/Jost-600-Semi.ttf") format("truetype");
+        font-weight:400;
+        font-style:normal;
+        font-display:swap;
+      }
+
+      @font-face{
+        font-family:"Jost-Bold";
+        src:url("https://fridaysforfuture.de/fonts/Jost-700-Bold.ttf") format("truetype");
+        font-weight:400;
+        font-style:normal;
+        font-display:swap;
+      }
+
+      .v-toolbar__title {
+        font-family: "Jost-Bold";
+      }
+
+      .v-btn {
+        text-transform: unset;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <v-app>
+        <v-app-bar app  style="background-color: white;" class="primary--text">
+          <v-toolbar-title>Bilder Moderation 19.03.2021</v-toolbar-title>
+
+          <v-flex></v-flex>
+
+          <v-btn
+            outlined
+            class="mr-2 primary--text"
+            :disabled="selected.length === 0"
+            @click="resetSelection"
+            >Auswahl zurücksetzen</v-btn
+          >
+          <v-btn
+            text
+            dark
+            class="mr-2 primary"
+            :disabled="selected.length === 0"
+            @click="acceptSelected(selected)"
+            >{{selected.length}} Ausgewählte Freischalten</v-btn
+          >
+          <v-btn
+            text
+            dark
+            class="mr-2 error"
+            :disabled="selected.length === 0"
+            @click="rejectSelected(selected)"
+            >{{selected.length}} Ausgewählte Ablehnen</v-btn
+          >
+
+          <v-btn
+            text
+            dark
+            class="mr-2 primary"
+            @click="acceptWaiting()"
+            >Unbearbeitete Freischalten</v-btn
+          >
+
+          <v-btn
+            outlined
+            class="primary--text"
+            @click="loadNext()"
+            >Nächsten Bilder</v-btn
+          >
+
+          <template v-slot:extension>
+            <v-tabs
+              v-model="filter"
+              align-with-title
+              color="accent"
+            >
+              <v-tabs-slider color="accent"></v-tabs-slider>
+
+             <!-- <v-tab outlined value="all">Alle (4012)</v-tab>-->
+              <v-tab outlined value="waiting">Unbearbeitete ({{waitingCount}})</v-tab>
+              <v-tab outlined value="accepted">Freigeschaltete</v-tab>
+              <v-tab outlined value="all">Alle</v-tab>
+              <v-tab outlined value="banner">Banner</v-tab>
+              <v-tab outlined value="og">OGs</v-tab>
+            </v-tabs>
+          </template>
+        </v-app-bar>
+        <v-main class="grey lighten-4">
+          <v-container fluid>
+            <v-data-iterator
+              v-model="selected"
+              :items="images"
+              item-key="id"
+              :items-per-page.sync="pageSize"
+              :footer-props="{ 'disable-pagination': true, 'items-per-page-options': [6,8,12,24,48,96]}"
+            >
+              <template v-slot:default="{ items, isSelected, select }">
+                <v-row dense>
+                  <v-col
+                    v-for="item in items"
+                    :key="item.id"
+                    cols="12"
+                    sm="6"
+                    md="4"
+                    lg="2"
+                    xl="1"
+                  >
+                    <v-card v-ripple v-touch="{
+                      left: () => reject(item),
+                      right: () => accept(item)
+                    }">
+                      <v-img
+                        @click="() => select(item, !isSelected(item))"
+                        :src="baseUrl + item.imagePath"
+                        aspect-ratio="1"
+                        :style="{
+                        border: 'solid 8px',
+                        'border-color': borderColor(item.state, isSelected(item))
+                      }"
+                      >
+                        <div style="width: 100%; height: 100%;" class="d-flex align-start flex-column">
+                          <div style="width: 100%" class="d-flex">
+                            <v-btn icon dark>
+                              <v-icon medium>{{ isSelected(item) ? 'mdi-checkbox-marked-circle' :
+                            'mdi-checkbox-blank-circle-outline' }}</v-icon>
+                            </v-btn>
+                            <v-dialog
+                              fullscreen
+                              hide-overlay
+                              v-model="item.dialog"
+                            >
+                              <template v-slot:activator="{ on, attrs }">
+                                <v-btn
+                              class="ml-auto"icon dark v-bind="attrs"
+                                v-on="on">
+                                  <v-icon medium>
+                                    mdi-fullscreen
+                                  </v-icon>
+                                </v-btn>
+                              </template>
+                              <v-img @click.stop="() => item.dialog = false" :src="baseUrl + item.imagePath" contain style="max-height: 100%;">
+
+                              </v-img>
+                            </v-dialog>
+                          </div>
+                          <div style="width: 100%" class="d-flex mt-auto">
+                            <a class="ml-auto" style="text-decoration: none;" :href="baseUrl + item.imagePath" download target="_blank">
+                              <v-btn icon dark >
+                                <v-icon medium>
+                                  mdi-download
+                                </v-icon>
+                              </v-btn>
+                            </a>
+
+                          </div>
+                        </div>
+                      </v-img>
+                      <v-card-title class="text-caption caption">{{item.name}}</v-card-title>
+                      <v-card-text>
+                        <v-chip :color="colorForStatus(item.state)">
+                          {{item.state === "accepted" ? "Freigeschaltet" :
+                          item.state === "rejected" ? "Abgelehnt" : item.state
+                          === "none" ? 'Unbearbeitet' : ''}}
+                        </v-chip>
+                        <v-chip color="blue" v-if="item.bannerState === 'accepted'"> Banner </v-chip>
+                        <v-chip color="orange" v-if="item.og"> OG </v-chip>
+                        <v-chip v-if="!item.allowOnBanner"> Kein Banner </v-chip>
+                      </v-card-text>
+
+                      <v-card-actions>
+                        <v-spacer></v-spacer>
+                        <v-btn :disabled="item.state !== 'accepted' || !item.allowOnBanner" v-if="item.bannerState !== 'accepted'" icon outlined @click.stop="() => selectForBanner(item)">
+                          <v-icon medium>mdi-heart</v-icon>
+                        </v-btn>
+                        <v-btn v-if="item.bannerState === 'accepted'" icon outlined @click.stop="() => removeFromBanner(item)">
+                          <v-icon medium>mdi-heart-outline</v-icon>
+                        </v-btn>
+                        <v-btn outlined icon
+                          :disabled="item.state === 'accepted'"
+                          @click="accept(item)">
+                          <v-icon medium>
+                            mdi-check
+                          </v-icon>
+                        </v-btn>
+                        <v-btn outlined icon
+                          :disabled="item.state === 'rejected'"
+                          @click="reject(item)">
+                          <v-icon medium>
+                            mdi-cancel
+                          </v-icon>
+                        </v-btn>
+                      </v-card-actions>
+                    </v-card>
+                  </v-col>
+                  <v-col cols="12">
+                    <v-spacer></v-spacer>
+                    <v-btn
+                      block
+                      outlined
+                      class="primary--text"
+                      @click="selectAll(items, select)"
+                      >Alle Auswählen</v-btn
+                    >
+                    <v-btn
+                      class="hidden-md-and-up"
+                      block
+                      outlined
+                      class="primary--text"
+                      @click="loadNext()"
+                      >Nächsten Bilder</v-btn
+                    >
+                  </v-col>
+                </v-row>
+              </template>
+            </v-data-iterator>
+          </v-container>
+        </v-main>
+      </v-app>
+    </div>
+    <!-- Use for development (includes warnings etc.): -->
+    <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+    <!-- Use for production: -->
+    <!-- <script src="https://cdn.jsdelivr.net/npm/vue@2"></script> -->
+
+    <script src="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.js"></script>
+
+    <script>
+      var BASE_URL = '';
+
+      var app = new Vue({
+        el: "#app",
+        vuetify: new Vuetify({
+          theme: {
+            themes: {
+              light: {
+                primary: '#1DA64A',
+                secondary: '#1B7340',
+                accent: '#90D3ED',
+                error: '#f5333f'
+              }
+            }
+          }
+        }),
+        data: {
+          filter: "waiting",
+          loadedImages: 0,
+          waitingCount: "",
+          pageSize: 24,
+          selected: [],
+          images: [],
+          baseUrl: BASE_URL,
+          dialog: false
+        },
+        mounted: async function () {
+          this.images = await this.loadImages('waiting', this.pageSize, 0);
+          this.loadedImages = this.images.length;
+          this.initWebSocket();
+        },
+        methods: {
+          borderColor: function (status, selected) {
+            if (selected) return "#90D3ED";
+
+            if (status === "rejected") return "#f5333f";
+            if (status === "accepted") return "#1DA64A";
+            if (status === "none") return "#549670 ";
+
+            return "#000";
+          },
+          colorForStatus: function (status) {
+            if (status === "rejected") return "#f5333f";
+            if (status === "accepted") return "#1DA64A";
+            if (status === "none") return "#549670 ";
+
+            return "white";
+          },
+          resetSelection: function () {
+            this.selected = [];
+          },
+          selectAll: function (items, select) {
+            for (const item of items) {
+              select(item);
+            }
+          },
+          filterToQueryParams: function (filter) {
+            switch(filter) {
+              case 'waiting': return 'image=true&state=none&';
+              case 'accepted': return 'image=true&state=accepted&';
+              case 'all': return 'image=true&';
+              case 'banner': return 'image=true&bannerState=accepted&';
+              case 'og': return 'image=true&og=true&';
+              default: return '';
+            }
+          },
+          loadImages: async function (filter, take = 100, skip = 0) {
+            this.resetSelection();
+            const images = await fetch(`${BASE_URL}/rest/participations?${this.filterToQueryParams(filter)}take=${take}&skip=${skip}`).then(res => res.json())
+            this.waitingCount = await fetch(`${BASE_URL}/rest/participations/count?image=true&state=none`).then(res => res.json()).then(res => res.count);
+            return images;
+          },
+          removeFromBanner: function (item) {
+            fetch(`${BASE_URL}/rest/participations/${item.id}/banner/reject`, {method: 'POST'});
+            this.$set(item, 'bannerState', 'rejected');
+          },
+          selectForBanner: function (item) {
+            fetch(`${BASE_URL}/rest/participations/${item.id}/banner/accept`, {method: 'POST'});
+            this.$set(item, 'bannerState', 'accepted');
+          },
+          accept: function (item) {
+            fetch(`${BASE_URL}/rest/participations/${item.id}/accept`, {method: 'POST'});
+            this.$set(item, 'state', 'accepted');
+          },
+          reject: function (item) {
+            fetch(`${BASE_URL}/rest/participations/${item.id}/reject`, {method: 'POST'});
+            this.$set(item, 'state', 'rejected');
+          },
+          acceptSelected: function (items) {
+            for (const item of items) {
+              this.accept(item);
+            }
+            this.resetSelection();
+          },
+          rejectSelected: function (items) {
+            for (const item of items) {
+              this.reject(item);
+            }
+            this.resetSelection();
+          },
+          acceptWaiting: function () {
+            for (const item of this.images) {
+              if (item.state === 'none') {
+                this.accept(item);
+              }
+            }
+          },
+          loadNext: async function (items) {
+            this.images = await this.loadImages(this.filterName(this.filter), this.pageSize, this.loadedImages);
+            if (this.images.length === 0) {
+              this.loadedImages = 0;
+              this.images = await this.loadImages(this.filterName(this.filter), this.pageSize, 0)
+            }
+            this.loadedImages += this.images.length;
+          },
+          filterName: function(filter) {
+            switch(filter) {
+              case 0: return 'waiting';
+              case 1: return 'accepted';
+              case 2: return 'all';
+              case 3: return 'banner';
+              case 4: return 'og';
+              default: return '';
+            }
+          },
+          initWebSocket: async function() {
+            const authToken = await fetch(`${BASE_URL}/rest/participations/websocket/auth`).then(res => res.text());
+            const socket = new WebSocket(`ws://localhost:8000`);
+
+            socket.addEventListener('open', () => {
+              socket.send(authToken);
+              console.log("Connected.")
+            });
+
+            socket.addEventListener('closed', () => {
+              console.log("Disconnected.")
+            });
+
+            socket.addEventListener('message', async (event) => {
+              const data = JSON.parse(event.data);
+
+              if (data.type === 'participation') {
+                const participation = data.data;
+
+                if (data.event === 'create') {
+                  if (this.filter === 'waiting') {
+                    this.images.splice(-1, 1, participation);
+                  }
+                } else if (data.event === 'update') {
+                  const oldIndex = this.images.findIndex(image => image.id === participation.id)
+
+                  if (oldIndex !== -1) {
+                    this.images.splice(oldIndex, 1, participation);
+                  }
+                }
+              }
+            })
+          }
+        },
+        watch: {
+          filter: async function (filter) {
+            this.images = await this.loadImages(this.filterName(filter), this.pageSize, 0);
+            this.loadedImages = this.images.length;
+          },
+          pageSize: async function (pageSize, oldPageSize) {
+            this.images = await this.loadImages(this.filterName(this.filter), pageSize, this.loadedImages - oldPageSize);
+            this.loadedImages = this.loadedImages - oldPageSize + this.images.length;
+          }
+        },
+      });
+    </script>
+  </body>
+</html>

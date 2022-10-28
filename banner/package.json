@@ -1,0 +1,14 @@
+{
+  "name": "fridays-for-future-banner",
+  "version": "1.0.0",
+  "description": "",
+  "main": "widget.js",
+  "scripts": {
+    "build": "tsc widget.ts"
+  },
+  "author": "Developers for Future",
+  "license": "MIT",
+  "dependencies": {
+    "typescript": "^4.2.4"
+  }
+}
